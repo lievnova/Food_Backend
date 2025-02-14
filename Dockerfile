@@ -1,20 +1,29 @@
-FROM richarvey/nginx-php-fpm:1.7.2
+# Use official PHP with Apache
+FROM php:8.2-apache
 
+# Install system dependencies
+RUN apt-get update && apt-get install -y libpng-dev zip unzip curl git
+
+# Install PHP extensions
+RUN docker-php-ext-install pdo pdo_mysql gd
+
+# Install Composer
+COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
+
+# Set working directory
+WORKDIR /var/www/html
+
+# Copy Laravel project files
 COPY . .
 
-# Image config
-ENV SKIP_COMPOSER 1
-ENV WEBROOT /var/www/html/public
-ENV PHP_ERRORS_STDERR 1
-ENV RUN_SCRIPTS 1
-ENV REAL_IP_HEADER 1
+# Install Laravel dependencies
+RUN composer install --no-dev --optimize-autoloader
 
-# Laravel config
-ENV APP_ENV production
-ENV APP_DEBUG false
-ENV LOG_CHANNEL stderr
+# Set permissions
+RUN chown -R www-data:www-data /var/www/html
 
-# Allow composer to run as root
-ENV COMPOSER_ALLOW_SUPERUSER 1
+# Expose port
+EXPOSE 80
 
-CMD ["/start.sh"]
+# Start Apache
+CMD ["apache2-foreground"]
